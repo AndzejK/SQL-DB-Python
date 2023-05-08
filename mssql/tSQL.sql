@@ -63,10 +63,63 @@ values
 --insert into dbo.Departments(DeptCode,Name,ContactNo)
 --values ('ISP','Info System Tech','0101-01'), ('CPE','Computer Engin Depa','0202-02')
 select * from dbo.Teachers
-select * from dbo.Meetings
 select * from dbo.Departments
 select * from dbo.Employees
+select * from dbo.Meetings
 select * from dbo.FacultyMeeting
+select * from dbo.Politicians 
+
+insert into dbo.Politicians(Surname,GivenName,isActive)
+values 
+('John','Smith',1)
+
+----------------------------------------
+
+-- CROSS JOIN - combines every row from one tbl w\ every row from anothe tbl.
+-- tbl A has 4 rows and tbl B - 3 rows, as result 12 rows 
+select * from dbo.Employees
+cross join dbo.Meetings
+
+select * from dbo.Politicians 
+select * from dbo.Employees
+-- UNION - combines data from multiple tbls/queries and removes duplicates
+-- the columns number must match and data tyoe too!!
+select FirstName,LastName from dbo.Employees
+union -- as a result the rows will be concatenated VERTICALLY, preserving column structure 
+select Surname,GivenName from dbo.Politicians
+-- UNION ALL - keeps duplicates and returns all rows
+
+-- INTERSECT - identifies and retrieves similiar rows, good for finding intersections/overlapping datasets
+select FirstName,LastName from dbo.Employees
+intersect 
+select Surname,GivenName from dbo.Politicians
+
+-- EXCEPT operator removes anu duplicate rows from the result set and returns only the distinct rows that are unique to the 1st SELECT statement
+select Surname,GivenName from dbo.Politicians
+EXCEPT
+select FirstName,LastName from dbo.Employees
+
+-- SUBQUERRY
+select top 2 * from dbo.Teachers
+select top 2 * from dbo.Departments
+select top 2 * from dbo.Employees
+
+select e.EmployeeID, e.FirstName,e.LastName,t.AcademicRank,t.AcademicRank from dbo.Teachers as t inner join dbo.Employees as e on t.EmployeeID=e.EmployeeID
+where Department= (
+select DeptCode from dbo.Departments
+where Name like '%computer%')
+-- just one record is returned, since we use '='
+select FirstName,LastName from dbo.Employees
+where EmployeeID=(select EmployeeID from dbo.Teachers
+where Department=(select DeptCode from dbo.Departments where Name like '%computer%'))
+
+-- LIST Value subquerry, using IN operator, where we reuturn multiple rows 
+select FirstName,LastName from dbo.Employees
+where EmployeeID IN (select EmployeeID from dbo.Teachers
+where Department=(select DeptCode from dbo.Departments where Name like '%info%'))
+
+
+----------------------------------------
 
 -- Inneer join 3 tbls - returns just MATCHES!!!!
 select * from dbo.FacultyMeeting as f inner join dbo.Teachers as t
