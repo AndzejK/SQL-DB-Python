@@ -269,3 +269,269 @@ select * from dbo.Persons
 
 ------------ VIEWS ------------
 -- it's virtual table to view data without change it
+
+------------ FUNCTIONS ------------
+Select HAS_DBACCESS('MyfirtDB')
+
+-- date fn
+select CURRENT_TIMESTAMP
+select DATEPART(MONTH,GETDATE()) -- 5
+select SYSDATETIME()
+select DATENAME(Month,getdate()), DATENAME(WEEKDAY,getdate()),DATENAME(DAY,getdate())
+select DATEDIFF(Year,'1990-05-16 15:00:56.9666824', GETdate())
+select DATEDIFF(YEAR,Birthday,GETDATE()) as year_diff from dbo.Students
+select DATEADD(DAY,100,GETDATE()), DATENAME(Weekday,DATEADD(DAY,100,GETDATE()))
+
+--str fn
+select SUBSTRING('__Andrew__',3,6) -- Andrew
+use LabActivity08
+go
+select SUBSTRING(FirstName,1,1)+SUBSTRING(LastName,1,1) as Initials, FirstName, LastName from dbo.Students
+
+-- MATH fn
+select RAND(), 10*(ROUND(rand(),1))
+
+------------ Stored procudure ------------
+ use labActivity04
+ go
+ select * from Employees
+-- creation of User Defined Stored Procedure
+create proc uspAddEmploee
+@fname varchar(60)
+,@lname varchar(60)
+,@phNumber varchar(50)
+as
+begin
+insert into dbo.Employees
+values (@fname,@lname,@phNumber)
+end
+
+--alter this procedure
+alter proc uspAddEmploee
+@fname varchar(60)
+,@lname varchar(60)
+,@phNumber varchar(50)
+as
+begin
+insert into dbo.Employees
+values (@fname,@lname,@phNumber)
+select @@IDENTITY as EmployeeID
+select * from Employees
+end
+
+alter proc uspAddEmploee
+@fname varchar(60)
+,@lname varchar(60)
+,@phNumber varchar(50)
+as
+begin
+insert into dbo.Employees
+values (@fname,@lname,@phNumber)
+select * from Employees where EmployeeID=@@IDENTITY
+end
+-- we do not use brackets 
+exec uspAddEmploee 'Samantha','Aubrey','670-414-6631'
+go
+
+-- stored procedure that updates values/rows
+select * from Teachers
+create proc uspUpdateTeachersRatePerUnit
+@emp_id int,
+@new_rate smallmoney
+as
+begin
+update dbo.Teachers
+set RatePerUnit=@new_rate
+where EmployeeID=@emp_id
+select @@ROWCOUNT as Updated_Row 
+end
+
+exec uspUpdateTeachersRatePerUnit 4,1000
+
+------ Trigers ------ 
+use labActivity04
+go
+
+select * from Employees
+select * from EmployeesTest
+select EmployeeID, ContactNo,LastName,FirstName into EmployeesTest
+from Employees
+
+create table EmployeeLog (
+EmployeeID int,
+[Status] varchar (50)
+)
+alter table EmployeeLog add  FirstName varchar (50),LastName varchar (50)
+
+-- Insert Trigger
+alter trigger EmployeesTest_INSERT on EmployeesTest
+after insert -- The trigger is executed after an "insert" operation is performed 
+as
+begin
+set nocount on -- SQL Server will supress the msg indicating the num if rows affected by this trigger
+declare @EmployeeID int
+select @EmployeeID=inserted.EmployeeID -- inserted is a virtual tbl to the @EmployeeID var
+from inserted
+
+insert into EmployeeLog -- the result will be stored in EmployeeLog tbl
+values(@EmployeeID,'Inserted')
+end
+
+select * from Employees
+insert into EmployeesTest(ContactNo,LastName,FirstName)
+values('370-6-721-587','Jonas','Smith')
+
+insert into EmployeesTest(ContactNo,LastName,FirstName)
+values('62-004-009-007','Miki','Sydney')
+
+select * from EmployeesTest
+select * from EmployeeLog
+select FirstName,LastName from EmployeesTest
+where EmployeeID in (select EmployeeID from EmployeeLog)
+
+-- Delete Tigger
+alter trigger EmployeesTest_DELETE on EmployeesTest
+after delete -- The trigger is executed after an "insert" operation is performed 
+as
+begin
+set nocount on -- SQL Server will supress the msg indicating the num if rows affected by this trigger
+declare @EmployeeID int
+declare @empFName nvarchar(50)
+declare @empLName nvarchar(50)
+select @EmployeeID=deleted.EmployeeID, -- deleted is a virtual tbl to the @EmployeeID var
+@empFName=deleted.FirstName,
+@empLName=deleted.LastName
+from deleted
+
+insert into EmployeeLog -- the result will be stored in EmployeeLog tbl
+values(@EmployeeID,'Deleted',@empFName,@empLName)
+end 
+
+select * from EmployeesTest
+delete from EmployeesTest where EmployeeID=14
+select * from EmployeeLog
+
+-- Update Trigger
+Create trigger EmployeesTest_UPDATE on EmployeesTest
+after update -- The trigger is executed after an "insert" operation is performed 
+as
+begin
+set nocount on -- SQL Server will supress the msg indicating the num if rows affected by this trigger
+declare @EmployeeID int
+declare @Action nvarchar(50)
+declare @empLName nvarchar(50)
+declare @empFName nvarchar(50)
+select @EmployeeID=inserted.EmployeeID, @empFName=inserted.FirstName,@empLName=inserted.LastName -- inserted is a virtual tbl to the @EmployeeID var
+from inserted
+
+if UPDATE(ContactNo)
+set @Action='Phone number was updated'
+if update (LastName)
+set @Action='Last name was updated'
+
+insert into EmployeeLog -- the result will be stored in EmployeeLog tbl
+values(@EmployeeID,@Action,@empFName,@empLName)
+end 
+
+
+select * from EmployeesTest
+update EmployeesTest set ContactNo='371-6-852-782' where EmployeeID=1
+update EmployeesTest set LastName='Shamamama' where EmployeeID=2
+select * from EmployeeLog
+
+
+-- Update/Insert Trigger make last name uppercases
+create trigger EmployeesTest_INSERT_UPDATE on EmployeesTest
+after insert, update
+as
+begin
+UPDATE EmployeesTest set LastName=upper(LastName)
+where LastName in (select LastName from inserted)
+end
+
+select * from EmployeesTest
+insert into EmployeesTest (FirstName,LastName)
+values('tesT1','tesT1'),('tesT2','tesT2'),('tesT3','tesT3')
+  
+---- TRY CATCH ---- 
+use labActivity04
+go
+begin try
+select 1/0
+end try
+begin catch
+print ('The error has been generated') -- In Messages Tab you can find these msgs
+print ('An error occured: '+convert(varchar,ERROR_number(),1) + ': '+ error_message())
+print ('The severity is: ')+convert(varchar,ERROR_severity(),10)
+end catch
+select * from dbo.Employees
+
+-- Try Catch using object_id, checking if a tbl exists 
+
+declare @object_id_empl INT
+declare @object_id_stud INT
+set @object_id_empl=OBJECT_ID('dbo.Employees') -- if this tbl exists the INT will be returned, else NULL
+set @object_id_stud=OBJECT_ID('dbo.Students')
+
+begin try
+if @object_id_empl is not null
+select * from dbo.Employees
+else 
+Print 'The table does not exist'
+if @object_id_stud is not null
+select * from dbo.Students
+else 
+Print 'The table does not exist'
+end try
+begin catch
+print ('The error has been generated by this request') -- In Messages Tab you can find these msgs
+print ('An error occured: '+convert(varchar,ERROR_number(),1) + ': '+ error_message())
+print ('The severity of the error is: ')+convert(varchar,ERROR_severity(),10)
+end catch 
+
+-- run all possible INSERT statements and if there is error just show me and move on
+
+begin try 
+insert into dbo.Students -- if I don't provide what to insert then I need to provide all of them
+values ('20101010101','Rogan','Joe','Media',1,0,'1973-07-23') 
+print 'SUCCESS: Record has been inserted'
+end try
+begin catch
+print 'FAILURE: Record has NOT been inserted'
+print 'Error '+convert(varchar,ERROR_number(),1) + ': '+ error_message()
+end catch
+begin try 
+insert into dbo.Students -- if I don't provide what to insert then I need to provide all of them
+values (19991099900,'Altman','Sam','AI',1,0,'1993-05-17') 
+print 'SUCCESS: Record has been inserted'
+end try
+begin catch
+print 'FAILURE: Record has NOT been inserted'
+print 'Error '+convert(varchar,ERROR_number(),1) + ': '+ error_message()
+end catch
+begin try 
+insert into dbo.Students -- if I don't provide what to insert then I need to provide all of them
+values (19891077900,'Huberman','Andrew','Health',3,0,'1983-05-17') 
+print 'SUCCESS: Record has been inserted'
+end try
+begin catch
+print 'FAILURE: Record has NOT been inserted'
+print 'Error '+convert(varchar,ERROR_number(),1) + ': '+ error_message()
+end catch
+select * from dbo.Students
+
+-- Temprory table 
+declare @employeeIdIden INT
+set @employeeIdIden=@@IDENTITY
+select * into #EmployeesTemp from dbo.Employees
+--select * from #EmployeesTemp
+insert into #EmployeesTemp
+values(@employeeIdIden,'Sam','Kovolovskij','372-621-547-115')
+
+select * into #StudentsCopy from dbo.Students
+insert into #StudentsCopy
+values (19891077900,'Huberman','Andrew','Health',3,0,'1983-05-17') 
+select @@IDENTITY
+select * from #StudentsCopy
+select * from dbo.Students
+drop table #StudentsCopy
